@@ -1,5 +1,6 @@
-from os import name, path
+from os import name, path, environ
 from sysconfig import get_config_var
+import sys
 
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build import build
@@ -20,7 +21,21 @@ macros: list[tuple[str, str | None]] = [
 if limited_api := not get_config_var("Py_GIL_DISABLED"):
     macros.append(("Py_LIMITED_API", "0x030A0000"))
 
-if name != "nt":
+# Detect MSYS2/MingW environment
+def is_msys2_mingw():
+    """Check if we're running in MSYS2/MingW environment"""
+    # Check for MSYS2 environment variables
+    if 'MSYSTEM' in environ:
+        return True
+    # Check if we're using MingW compiler
+    if 'MINGW' in sys.version or 'MINGW' in str(sys.executable).upper():
+        return True
+    # Check for common MSYS2 paths
+    if 'MSYS2' in str(sys.executable).upper():
+        return True
+    return False
+
+if name != "nt" or is_msys2_mingw():
     cflags = ["-std=c11", "-fvisibility=hidden"]
 else:
     cflags = ["/std:c11", "/utf-8"]
